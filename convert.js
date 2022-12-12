@@ -1,4 +1,5 @@
-// From https://scrapbox.io/takker/選択範囲をMarkdown記法に変換してclip_boardにcopyするPopupMenu
+// Based on https://scrapbox.io/takker/選択範囲をMarkdown記法に変換してclip_boardにcopyするPopupMenu
+// Modified by @blu3mo to convert to Obsidian syntax
 
 // @ts-check
 
