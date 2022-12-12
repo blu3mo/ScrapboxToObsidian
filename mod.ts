@@ -9,14 +9,14 @@ if (!existsSync("./obsidianPages")) {
 }
 
 const filePath = Deno.args[0]
+const projectName = Deno.args[1] ?? "PROJECT_NAME"
 try {
     const projectFile = await Deno.readTextFile(`./${filePath}`);
     const projectJson = JSON.parse(projectFile)
     const pages = projectJson["pages"]
     for (const page of pages) {
         const blocks = parse(page["lines"].join("\n"))
-        Deno.writeTextFile(`./obsidianPages/blocks.txt`, JSON.stringify(blocks));
-        const obsidianPage = blocks.map((block) => convertScrapboxToObsidian(block, 0, "blu3mo-public")).join("\n")
+        const obsidianPage = blocks.map((block) => convertScrapboxToObsidian(block, 0, projectName)).join("\n")
         Deno.writeTextFile(`./obsidianPages/${page["title"].replace(/\//gi, '-')}.md`, obsidianPage);
     }
 } catch (error) {
