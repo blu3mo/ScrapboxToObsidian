@@ -1,4 +1,3 @@
-
 // From https://scrapbox.io/takker/選択範囲をMarkdown記法に変換してclip_boardにcopyするPopupMenu
 
 // @ts-check
@@ -15,9 +14,10 @@
  *
  * @param {Block} block
  * @param {number} topIndentLevel
+ * @param {string} projectName
  * @return {string}
  */
-export const convertSb2Md = (block, topIndentLevel) => {
+export const convertScrapboxToObsidian = (block, topIndentLevel, projectName) => {
   switch (block.type) {
     case "title":
       return ""; // タイトルは選択範囲に入らないので無視
@@ -29,25 +29,26 @@ export const convertSb2Md = (block, topIndentLevel) => {
         "\`\`\`\n",
       ].join("\n");
     case "table":
-      return convertTable(block);
+      return convertTable(block, projectName);
     case "line":
-      return convertLine(block, topIndentLevel);
+      return convertLine(block, topIndentLevel, projectName);
   }
 };
 
 /** Table記法の変換
  *
  * @param {Table} table
+ * @param {string} projectName
  * @return {string}
  */
-const convertTable = (table) => {
+const convertTable = (table, projectName) => {
   const line = [table.fileName];
   // columnsの最大長を計算する
   const maxCol = Math.max(...table.cells.map((row) => row.length));
   table.cells.forEach((row, i) => {
     line.push(
       `| ${
-        row.map((column) => column.map((node) => convertNode(node)).join(""))
+        row.map((column) => column.map((node) => convertNode(node, projectName)).join(""))
           .join(" | ")
       } |`,
     );
@@ -62,12 +63,13 @@ const INDENT = "    "; // インデントに使う文字
  *
  * @param {Line} line
  * @param {number} topIndentLevel
+ * @param {string} projectName
  * @return {string}
  */
-const convertLine = (line, topIndentLevel) => {
+const convertLine = (line, topIndentLevel, projectName) => {
   const content = line.nodes
     .map((node) =>
-      convertNode(node, { section: line.indent === topIndentLevel })
+      convertNode(node, projectName, { section: line.indent === topIndentLevel })
     ).join("").trim();
   if (content === "") return ""; // 空行はそのまま返す
 
@@ -81,14 +83,15 @@ const convertLine = (line, topIndentLevel) => {
 /** Nodeを変換する
  *
  * @param {NodeType} node
+ * @param {string} projectName
  * @param {{section?:boolean}} [init]
  * @return {string}
  */
-const convertNode = (node, init) => {
+const convertNode = (node, projectName, init) => {
   const { section = false } = init ?? {};
   switch (node.type) {
     case "quote":
-      return `> ${node.nodes.map((node) => convertNode(node)).join("")}`;
+      return `> ${node.nodes.map((node) => convertNode(node, projectName)).join("")}`;
     case "helpfeel":
       return `\`? ${node.text}\``;
     case "image":
@@ -97,17 +100,24 @@ const convertNode = (node, init) => {
     case "icon":
     case "strongIcon":
       // 仕切り線だけ変換する
-      return ["/icons/hr", "/scrapboxlab/hr"]
-        .includes(node.path)
-        ? "---"
-        : "";
+      if (["/icons/hr", "/scrapboxlab/hr", "hr", "-"].includes(node.path)) {
+        return "---"
+      } else if (node.pathType === "relative"){
+        return `<img src='https://scrapbox.io/api/pages/${projectName}/${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`
+      } else if (node.pathType === "root"){
+        return `<img src='https://scrapbox.io/api/pages${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`
+      } else {
+        return ""
+      }
     case "strong":
-      return `**${node.nodes.map((node) => convertNode(node)).join("")}**`;
+      return `**${node.nodes.map((node) => convertNode(node, projectName)).join("")}**`;
     case "formula":
       return `$${node.formula}$`;
     case "decoration": {
-      let result = node.nodes.map((node) => convertNode(node)).join("");
+      let result = node.nodes.map((node) => convertNode(node, projectName)).join("");
       if (node.decos.includes("/")) result = `*${result}*`;
+      if (node.decos.includes("~")) result = `~~${result}~~`;
+      if (node.decos.includes("+")) result = `==${result}==`;
       // 見出しの変換
       // お好みで変えて下さい
       if (section) {
@@ -119,7 +129,6 @@ const convertNode = (node, init) => {
           result = `**${result}**`;
         }
       }
-      if (node.decos.includes("~")) result = `~~${result}~~`;
       return result;
     }
     case "code":
@@ -131,18 +140,16 @@ const convertNode = (node, init) => {
         case "root":
           return `[${node.href}](https://scrapbox.io${node.href})`;
         case "relative":
-          //@ts-ignore declare宣言が使えないため、`scrapbox`に型定義をつけられない
-          return `[${node.href}](https://scrapbox.io/${scrapbox.Project.name}/${node.href})`;
+          return `[[${node.href}]]`;
         default:
           return node.content === "" ?
-            ` ${node.href} ` :
+            `[${node.href}](${node.href})` :
             `[${node.content}](${node.href})`;
       }
     case "googleMap":
       return `[${node.place}](${node.url})`;
     case "hashTag":
-      //@ts-ignore declare宣言が使えないため、`scrapbox`に型定義をつけられない
-      return `[#${node.href}](https://scrapbox.io/${scrapbox.Project.name}/${node.href})`;
+      return `#${node.href}`;
     case "blank":
     case "plain":
       return node.text;
