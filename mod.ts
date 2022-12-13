@@ -8,6 +8,7 @@ if (!existsSync("./obsidianPages")) {
     Deno.mkdir("./obsidianPages")
 }
 
+
 const filePath = Deno.args[0]
 const projectName = Deno.args[1] ?? "PROJECT_NAME"
 try {
@@ -17,7 +18,9 @@ try {
     for (const page of pages) {
         const blocks = parse(page["lines"].join("\n"))
         const obsidianPage = blocks.map((block) => convertScrapboxToObsidian(block, 0, projectName)).join("\n")
-        Deno.writeTextFile(`./obsidianPages/${page["title"].replace(/\//gi, '-')}.md`, obsidianPage);
+        const obsidianPagePath = `./obsidianPages/${page["title"].replace(/\//gi, '-')}.md`
+        await Deno.writeTextFile(obsidianPagePath, obsidianPage);
+        await Deno.utime(obsidianPagePath, new Date(), page["updated"]);
     }
 } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
