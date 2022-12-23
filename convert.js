@@ -4,10 +4,10 @@
 // @ts-check
 
 /**
- * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@7.2.0").Block} Block
- * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@7.2.0").Table} Table
- * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@7.2.0").Line} Line
- * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@7.2.0").Node} NodeType
+ * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@8.1.0").Block} Block
+ * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@8.1.0").Table} Table
+ * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@8.1.0").Line} Line
+ * @typedef {import("https://esm.sh/@progfay/scrapbox-parser@8.1.0").Node} NodeType
  * @typedef {import("https://raw.githubusercontent.com/scrapbox-jp/types/0.3.4/scrapbox.ts").Scrapbox} Scrapbox
  */
 
@@ -18,7 +18,11 @@
  * @param {string} projectName
  * @return {string}
  */
-export const convertScrapboxToObsidian = (block, topIndentLevel, projectName) => {
+export const convertScrapboxToObsidian = (
+  block,
+  topIndentLevel,
+  projectName,
+) => {
   switch (block.type) {
     case "title":
       return ""; // タイトルは選択範囲に入らないので無視
@@ -49,7 +53,9 @@ const convertTable = (table, projectName) => {
   table.cells.forEach((row, i) => {
     line.push(
       `| ${
-        row.map((column) => column.map((node) => convertNode(node, projectName)).join(""))
+        row.map((column) =>
+          column.map((node) => convertNode(node, projectName)).join("")
+        )
           .join(" | ")
       } |`,
     );
@@ -70,7 +76,9 @@ const INDENT = "    "; // インデントに使う文字
 const convertLine = (line, topIndentLevel, projectName) => {
   const content = line.nodes
     .map((node) =>
-      convertNode(node, projectName, { section: line.indent === topIndentLevel })
+      convertNode(node, projectName, {
+        section: line.indent === topIndentLevel,
+      })
     ).join("").trim();
   if (content === "") return ""; // 空行はそのまま返す
 
@@ -92,7 +100,9 @@ const convertNode = (node, projectName, init) => {
   const { section = false } = init ?? {};
   switch (node.type) {
     case "quote":
-      return `> ${node.nodes.map((node) => convertNode(node, projectName)).join("")}`;
+      return `> ${
+        node.nodes.map((node) => convertNode(node, projectName)).join("")
+      }`;
     case "helpfeel":
       return `\`? ${node.text}\``;
     case "image":
@@ -102,20 +112,23 @@ const convertNode = (node, projectName, init) => {
     case "strongIcon":
       // 仕切り線だけ変換する
       if (["/icons/hr", "/scrapboxlab/hr", "hr", "-"].includes(node.path)) {
-        return "---"
-      } else if (node.pathType === "relative"){
-        return `<img src='https://scrapbox.io/api/pages/${projectName}/${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`
-      } else if (node.pathType === "root"){
-        return `<img src='https://scrapbox.io/api/pages${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`
+        return "---";
+      } else if (node.pathType === "relative") {
+        return `<img src='https://scrapbox.io/api/pages/${projectName}/${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`;
+      } else if (node.pathType === "root") {
+        return `<img src='https://scrapbox.io/api/pages${node.path}/icon' alt='${node.path}.icon' height="19.5"/>`;
       } else {
-        return ""
+        return "";
       }
     case "strong":
-      return `**${node.nodes.map((node) => convertNode(node, projectName)).join("")}**`;
+      return `**${
+        node.nodes.map((node) => convertNode(node, projectName)).join("")
+      }**`;
     case "formula":
       return `$${node.formula}$`;
     case "decoration": {
-      let result = node.nodes.map((node) => convertNode(node, projectName)).join("");
+      let result = node.nodes.map((node) => convertNode(node, projectName))
+        .join("");
       if (node.decos.includes("/")) result = `*${result}*`;
       if (node.decos.includes("~")) result = `~~${result}~~`;
       if (node.decos.includes("+")) result = `==${result}==`;
@@ -143,9 +156,9 @@ const convertNode = (node, projectName, init) => {
         case "relative":
           return `[[${node.href}]]`;
         default:
-          return node.content === "" ?
-            `[${node.href}](${node.href})` :
-            `[${node.content}](${node.href})`;
+          return node.content === ""
+            ? `[${node.href}](${node.href})`
+            : `[${node.content}](${node.href})`;
       }
     case "googleMap":
       return `[${node.place}](${node.url})`;
@@ -154,66 +167,70 @@ const convertNode = (node, projectName, init) => {
     case "blank":
     case "plain":
       return node.text;
+    case "numberList":
+      return `${node.number}. ${
+        node.nodes.map((node) => convertNode(node, projectName)).join("")
+      }`;
   }
 };
 
 const extensionData = [
-    {
-        extensions: ["javascript", "js"],
-        fileType: "javascript",
-    },
-    {
-        extensions: ["typescript", "ts"],
-        fileType: "typescript",
-    },
-    {
-        extensions: ["cpp", "hpp"],
-        fileType: "cpp",
-    },
-    {
-        extensions: ["c", "cc", "h"],
-        fileType: "c",
-    },
-    {
-        extensions: ["cs", "csharp"],
-        fileType: "cs",
-    },
-    {
-        extensions: ["markdown", "md"],
-        fileType: "markdown",
-    },
-    {
-        extensions: ["htm", "html"],
-        fileType: "html",
-    },
-    {
-        extensions: ["json"],
-        fileType: "json",
-    },
-    {
-        extensions: ["xml"],
-        fileType: "xml",
-    },
-    {
-        extensions: ["yaml", "yml"],
-        fileType: "yaml",
-    },
-    {
-        extensions: ["toml"],
-        fileType: "toml",
-    },
-    {
-        extensions: ["ini"],
-        fileType: "ini",
-    },
-    {
-        extensions: ["tex", "sty"],
-        fileType: "tex",
-    },
-    {
-        extensions: ["svg"],
-        fileType: "svg",
-    },
+  {
+    extensions: ["javascript", "js"],
+    fileType: "javascript",
+  },
+  {
+    extensions: ["typescript", "ts"],
+    fileType: "typescript",
+  },
+  {
+    extensions: ["cpp", "hpp"],
+    fileType: "cpp",
+  },
+  {
+    extensions: ["c", "cc", "h"],
+    fileType: "c",
+  },
+  {
+    extensions: ["cs", "csharp"],
+    fileType: "cs",
+  },
+  {
+    extensions: ["markdown", "md"],
+    fileType: "markdown",
+  },
+  {
+    extensions: ["htm", "html"],
+    fileType: "html",
+  },
+  {
+    extensions: ["json"],
+    fileType: "json",
+  },
+  {
+    extensions: ["xml"],
+    fileType: "xml",
+  },
+  {
+    extensions: ["yaml", "yml"],
+    fileType: "yaml",
+  },
+  {
+    extensions: ["toml"],
+    fileType: "toml",
+  },
+  {
+    extensions: ["ini"],
+    fileType: "ini",
+  },
+  {
+    extensions: ["tex", "sty"],
+    fileType: "tex",
+  },
+  {
+    extensions: ["svg"],
+    fileType: "svg",
+  },
 ];
 
 /** ファイル名の拡張子から言語を取得する
@@ -222,8 +239,8 @@ const extensionData = [
  * @return {string}
  */
 const getFileType = (filename) => {
-    const filenameExtention = filename.replace(/^.*\.(\w+)$/, "$1");
-    return extensionData
-            .find((data) => data.extensions.includes(filenameExtention))?.fileType ??
-        "";
+  const filenameExtention = filename.replace(/^.*\.(\w+)$/, "$1");
+  return extensionData
+    .find((data) => data.extensions.includes(filenameExtention))?.fileType ??
+    "";
 };
